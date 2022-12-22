@@ -16,15 +16,22 @@
       let
         overlays = [ haskellNix.overlay
           (final: prev: {
-            hixProject =
-              final.haskell-nix.hix.project {
+            hello =
+              final.haskell-nix.project' {
                 src = ./.;
-                evalSystem = "x86_64-linux";
+                compiler-nix-name = "ghc8107";
+
+                modules = [{
+                  # Replace `extra-libraries` dependencies
+                  packages.mysql.components.library.libs = pkgs.lib.mkForce (with pkgs;
+                      [ libmysqlclient zlib openssl ]);
+                }];
               };
+
           })
         ];
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-        flake = pkgs.hixProject.flake {};
+        flake = pkgs.hello.flake {};
       in flake // {
         legacyPackages = pkgs;
         packages.default = flake.packages."hello:exe:hello";
